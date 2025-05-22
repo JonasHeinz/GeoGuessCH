@@ -15,7 +15,7 @@ async def lade_naechste_gemeinde():
 # Reaktive Zustände
 player_name = reactive.Value("")
 clicked_coords = reactive.Value(None)
-game_started = reactive.Value(False)
+game_state = reactive.Value("start")
 random_gemeinde = reactive.Value(None)
 count = reactive.Value(0)
 
@@ -66,10 +66,11 @@ def server(input, output, session):
     background.interaction = False
     register_widget("background_map", background)
 
+
     @output
     @render.ui
     def main_ui():
-        if not game_started.get():
+        if game_state.get() == "start":
             return [
                 output_widget("background_map"),
                 ui.div(
@@ -79,6 +80,8 @@ def server(input, output, session):
                     ui.input_action_button("start_btn", "Start", class_="btn btn-primary mt-3"),
                 )
             ]
+        elif game_state.get() == "end":
+              return []
         else:
             return [
                     ui.h3(f"Klicke auf: {random_gemeinde.get()['Gemeindename']}"),
@@ -93,12 +96,12 @@ def server(input, output, session):
         name = input.name_input().strip()
         if name:
             player_name.set(name)
-            game_started.set(True)
+            game_state.set("game")
             random_gemeinde.set(get_random_gemeinde())
 
     @reactive.Effect
     def setup_game():
-        if not game_started.get():
+        if not game_state.get() == "game":
             return
 
         esri_shaded = TileLayer(
