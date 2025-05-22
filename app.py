@@ -98,6 +98,9 @@ def server(input, output, session):
                     ui.br(),
                     ui.h4("Deine summierte Distanz beträgt:"),
                     ui.output_text("total_distance_text"),
+                    ui.input_action_button(
+                        "end_btn", "Spiel beenden", class_="btn btn-primary mt-3"),
+                    
                 )
             ]
         else:
@@ -119,6 +122,18 @@ def server(input, output, session):
             total_distance.set(0)
             distance.set(0)
             clicked_coords.set(None)
+
+    @reactive.Effect
+    @reactive.event(input.end_btn)
+    def end_game():
+        player_name.set(0)
+        game_state.set("start")
+        random_gemeinde.set(None)
+        count.set(0)
+        total_distance.set(0)
+        distance.set(0)
+        clicked_coords.set(None)
+
 
     @reactive.Effect
     def setup_game():
