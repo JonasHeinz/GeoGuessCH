@@ -24,8 +24,11 @@ def wgs84_to_lv95(lat, lon):
     e, n = transformer.transform(lon, lat)
     return round(e, 2), round(n, 2)
 
-def distanz_berechnen_lv95(coords1, coords2):
-    e1, n1 = coords1
-    e2, n2 = coords2
+def distanz_berechnen_lv95(coords, gemeinde):
+    e_lv95, n_lv95 = wgs84_to_lv95(coords[0], coords[1])
+    user_coords_lv95 = (e_lv95, n_lv95)
+    ziel_coords_lv95 = (float(gemeinde["E"]), float(gemeinde["N"]))
+    e1, n1 = user_coords_lv95
+    e2, n2 = ziel_coords_lv95
     distanz_m = math.sqrt((e2 - e1)**2 + (n2 - n1)**2)
     return round(distanz_m / 1000, 2)

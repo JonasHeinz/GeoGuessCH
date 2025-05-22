@@ -18,6 +18,8 @@ clicked_coords = reactive.Value(None)
 game_state = reactive.Value("start")
 random_gemeinde = reactive.Value(None)
 count = reactive.Value(0)
+total_distance = reactive.Value(0)
+distance = reactive.Value(0)
 
 
 # UI
@@ -121,7 +123,7 @@ def server(input, output, session):
                     latlng = kwargs.get("coordinates")
                     marker.location = latlng
                     clicked_coords.set((round(latlng[0], 5), round(latlng[1], 5)))
-
+                    distance.set(distanz_berechnen_lv95(clicked_coords.get(), random_gemeinde.get()))
                     asyncio.create_task(lade_naechste_gemeinde())
                 
 
@@ -134,15 +136,11 @@ def server(input, output, session):
         coords = clicked_coords.get()
         gemeinde = random_gemeinde.get()
 
-        if coords and gemeinde:
-            e_lv95, n_lv95 = wgs84_to_lv95(coords[0], coords[1])
-            user_coords_lv95 = (e_lv95, n_lv95)
-            ziel_coords_lv95 = (float(gemeinde["E"]), float(gemeinde["N"]))
-            distanz = distanz_berechnen_lv95(user_coords_lv95, ziel_coords_lv95)
+    
 
-            return (
-                f"Distanz zur Lösung: {distanz} km"
-            )
+        return (
+            f"Distanz zur Lösung: {distance.get()} km"
+        )
 
         return "Klicke auf die Karte, um deine Schätzung abzugeben."
 
