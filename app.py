@@ -1,16 +1,13 @@
 from shiny import App, ui, reactive, render
 from shinywidgets import output_widget, register_widget
 from ipyleaflet import Map, Marker, TileLayer
-from utils.helpers import get_random_gemeinde, wgs84_to_lv95, distanz_berechnen_lv95
-from ipyleaflet import GeoJSON
-import json
+from utils.helpers import get_random_gemeinde, distanz_berechnen_lv95
 import asyncio
 
 async def lade_naechste_gemeinde():
-    await asyncio.sleep(1)  # 3 Sekunden warten
+    await asyncio.sleep(1)  # 1 Sekunde warten (kannst du anpassen)
     random_gemeinde.set(get_random_gemeinde())
     clicked_coords.set(None)  # Klick zurücksetzen
-
 
 # Reaktive Zustände
 player_name = reactive.Value("")
@@ -20,7 +17,6 @@ random_gemeinde = reactive.Value(None)
 count = reactive.Value(0)
 total_distance = reactive.Value(0)
 distance = reactive.Value(0)
-
 
 # UI
 app_ui = ui.page_fluid(
@@ -68,7 +64,6 @@ def server(input, output, session):
     background.interaction = False
     register_widget("background_map", background)
 
-
     @output
     @render.ui
     def main_ui():
@@ -83,44 +78,47 @@ def server(input, output, session):
                 )
             ]
         elif game_state.get() == "end":
-              return [              
-                    output_widget("background_map"),
-                        ui.div(
-                            {"class": "center-box"},
-                            ui.h2("🎯 CH GeoGuess"),
-                            ui.h3(f"Herzlichen Glückwunsch, {player_name.get()}!"),
-                            ui.h4("Du hast das Spiel beendet!"),
-                            ui.br(),
-                            ui.h3("Deine summierte Distanz beträgt:"),
-                            ui.output_text("total_distance")
-    )
-]
+            return [
+                output_widget("background_map"),
+                ui.div(
+                    {"class": "center-box"},
+                    ui.h3("🎯 CH GeoGuess"),
+                    ui.h4(f"Herzlichen Glückwunsch, {player_name.get()}!"),
+                    ui.h5("Du hast das Spiel beendet!"),
+                    ui.br(),
+                    ui.h4("Deine summierte Distanz beträgt:"),
+                    ui.output_text("total_distance_text"),
+                )
+            ]
         else:
             return [
-                    ui.h3(f"Klicke auf: {random_gemeinde.get()['Gemeindename']}"),
-
-                    output_widget("map_widget"),
-                    ui.output_text("coord_text")
+                ui.h3(f"Klicke auf: {random_gemeinde.get()['Gemeindename']}"),
+                output_widget("map_widget"),
+                ui.output_text("coord_text"),
             ]
 
     @reactive.Effect
     @reactive.event(input.start_btn)
-    def _():
+    def start_game():
         name = input.name_input().strip()
         if name:
             player_name.set(name)
             game_state.set("game")
             random_gemeinde.set(get_random_gemeinde())
+            count.set(0)
+            total_distance.set(0)
+            distance.set(0)
+            clicked_coords.set(None)
 
     @reactive.Effect
     def setup_game():
-        if not game_state.get() == "game":
+        if game_state.get() != "game":
             return
 
         esri_shaded = TileLayer(
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}",
             attribution="Tiles © Esri — Source: Esri",
-            max_zoom=13
+            max_zoom=13,
         )
 
         m = Map(center=(46.8, 8.3), zoom=7, max_zoom=13)
@@ -138,35 +136,29 @@ def server(input, output, session):
                     # Distanz berechnen
                     distanz = distanz_berechnen_lv95(clicked_coords.get(), random_gemeinde.get())
                     distance.set(distanz)
-                    total_distance.set((total_distance.get() + distanz))
-
+                    total_distance.set(total_distance.get() + distanz)
 
                     # Rundenlogik
                     count.set(count.get() + 1)
-                    # asyncio.create_task(lade_naechste_gemeinde())
-                  
+                    asyncio.create_task(lade_naechste_gemeinde())
                 else:
                     game_state.set("end")
-                
-                
-                
 
         m.on_interaction(on_map_click)
         register_widget("map_widget", m)
 
     @output
     @render.text
+    def total_distance_text():
+        print("Total distance:", total_distance.get())
+        return f"{total_distance.get()} km"
+
+    @output
+    @render.text
     def coord_text():
-        coords = clicked_coords.get()
-        gemeinde = random_gemeinde.get()
-
-    
-
-        return (
-            f"Distanz zur Lösung: {distance.get()} km"
-        )
-
-        return "Klicke auf die Karte, um deine Schätzung abzugeben."
+        if not clicked_coords.get():
+            return "Klicke auf die Karte, um deine Schätzung abzugeben."
+        return f"Distanz zur Lösung: {distance.get()} km"
 
 # App starten
 app = App(app_ui, server)
