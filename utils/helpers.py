@@ -24,6 +24,13 @@ def wgs84_to_lv95(lat, lon):
     e, n = transformer.transform(lon, lat)
     return round(e, 2), round(n, 2)
 
+
+def lv95_to_wgs84(e, n):
+    transformer = Transformer.from_crs("EPSG:2056", "EPSG:4326", always_xy=True)
+    lon, lat = transformer.transform(e, n)
+    return lat, lon
+
+
 def distanz_berechnen_lv95(coords, gemeinde):
     e_lv95, n_lv95 = wgs84_to_lv95(coords[0], coords[1])
     user_coords_lv95 = (e_lv95, n_lv95)

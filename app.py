@@ -1,8 +1,9 @@
 from shiny import App, ui, reactive, render
 from shinywidgets import output_widget, register_widget
 from ipyleaflet import Map, Marker, TileLayer
-from utils.helpers import get_random_gemeinde, distanz_berechnen_lv95
+from utils.helpers import get_random_gemeinde, distanz_berechnen_lv95, lv95_to_wgs84
 import asyncio
+from ipyleaflet import Icon
 
 
 async def lade_naechste_gemeinde():
@@ -89,7 +90,7 @@ def server(input, output, session):
             ]
         elif game_state.get() == "end":
             return [
-                output_widget("background_map"),
+                
                 ui.div(
                     {"class": "center-box"},
                     ui.h3("🎯 CH GeoGuess"),
@@ -154,6 +155,9 @@ def server(input, output, session):
             scroll_wheel_zoom=True,
             max_bounds=[[45.5, 5.5], [47.9, 10.5]]
         )
+
+        red_icon = Icon(icon_url="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png", icon_size=[25, 41], icon_anchor=[12, 41])
+        ziel_marker = Marker(location=(0, 0), icon=red_icon, draggable=False, opacity=0.9)
         
         m.add_layer(esri_shaded)
         marker = Marker(location=(46.8, 8.3), draggable=True)
@@ -172,6 +176,18 @@ def server(input, output, session):
                         clicked_coords.get(), random_gemeinde.get())
                     distance.set(distanz)
                     total_distance.set(total_distance.get() + distanz)
+
+                    # Zielkoordinaten (LV95 → WGS84)
+                    ziel_e = float(random_gemeinde.get()["E"])
+                    ziel_n = float(random_gemeinde.get()["N"])
+                    ziel_lat, ziel_lon = lv95_to_wgs84(ziel_e, ziel_n)
+
+                    # Zielmarker aktualisieren
+                    ziel_marker.location = (ziel_lat, ziel_lon)
+
+                    # Marker nur einmalig zur Karte hinzufügen
+                    if ziel_marker not in m.layers:
+                        m.add_layer(ziel_marker)
 
                     # Rundenlogik
                     count.set(count.get() + 1)
