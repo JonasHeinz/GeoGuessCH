@@ -1,14 +1,28 @@
 from shiny import App, ui, reactive, render
 from shinywidgets import output_widget, register_widget
-from ipyleaflet import Map, Marker
-from utils.helpers import get_random_gemeinde
-from ipyleaflet import TileLayer
+from ipyleaflet import Map, Marker, TileLayer
+from pyproj import Transformer
+import math
+from utils.helpers import get_random_gemeinde  # siehe unten
 
 # Reaktive Zustände
 player_name = reactive.Value("")
 clicked_coords = reactive.Value(None)
 game_started = reactive.Value(False)
 random_gemeinde = reactive.Value(None)
+
+# Koordinatentransformation: WGS84 → LV95
+transformer = Transformer.from_crs("EPSG:4326", "EPSG:2056", always_xy=True)
+
+def wgs84_to_lv95(lat, lon):
+    e, n = transformer.transform(lon, lat)
+    return round(e, 2), round(n, 2)
+
+def distanz_berechnen_lv95(coords1, coords2):
+    e1, n1 = coords1
+    e2, n2 = coords2
+    distanz_m = math.sqrt((e2 - e1)**2 + (n2 - n1)**2)
+    return round(distanz_m / 1000, 2)
 
 # UI
 app_ui = ui.page_fluid(
@@ -51,17 +65,15 @@ app_ui = ui.page_fluid(
 # Server
 def server(input, output, session):
 
-    # Hintergrundkarte (Startbildschirm, ohne Interaktion)
+    # Hintergrundkarte auf Startseite
     background = Map(center=(46.8, 8.3), zoom=7, scroll_wheel_zoom=False, zoom_control=False)
     background.interaction = False
     register_widget("background_map", background)
 
-    # Dynamisches UI
     @output
     @render.ui
     def main_ui():
         if not game_started.get():
-            # Startseite
             return [
                 output_widget("background_map"),
                 ui.div(
@@ -72,14 +84,13 @@ def server(input, output, session):
                 )
             ]
         else:
-            # Spielansicht
             return [
-                ui.h3(f"Viel Glück, {player_name.get()}!"),
-                output_widget("map_widget"),
-                ui.output_text("coord_text")
+                    ui.h3(f"Klicke auf: {random_gemeinde.get()['Gemeindename']}"),
+
+                    output_widget("map_widget"),
+                    ui.output_text("coord_text")
             ]
 
-    # Beim Klick auf Start
     @reactive.Effect
     @reactive.event(input.start_btn)
     def _():
@@ -89,7 +100,6 @@ def server(input, output, session):
             game_started.set(True)
             random_gemeinde.set(get_random_gemeinde())
 
-    # Initialisierung des Spiels nach Start
     @reactive.Effect
     def setup_game():
         if not game_started.get():
@@ -119,10 +129,20 @@ def server(input, output, session):
     @render.text
     def coord_text():
         coords = clicked_coords.get()
-        if coords:
-            return f"📍 Koordinaten: {coords[0]}, {coords[1]}"
-        return "Klicke auf die Karte."
+        gemeinde = random_gemeinde.get()
+
+        if coords and gemeinde:
+            e_lv95, n_lv95 = wgs84_to_lv95(coords[0], coords[1])
+            user_coords_lv95 = (e_lv95, n_lv95)
+            ziel_coords_lv95 = (float(gemeinde["E"]), float(gemeinde["N"]))
+            distanz = distanz_berechnen_lv95(user_coords_lv95, ziel_coords_lv95)
+
+            return (
+                f"📌 Zielgemeinde: {gemeinde['Gemeindename']}\n"
+                f"📏 Distanz zur Lösung: {distanz} km"
+            )
+
+        return "Klicke auf die Karte, um deine Schätzung abzugeben."
 
 # App starten
 app = App(app_ui, server)
-
