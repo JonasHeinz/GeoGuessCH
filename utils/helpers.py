@@ -18,6 +18,21 @@ def get_random_gemeinde():
     return random_gemeinde
 
 
+_gemeinden_cache = []
+
+def lade_gemeinden():
+    global _gemeinden_cache
+    if not _gemeinden_cache:
+        with open("data/Gemeinden_CH.csv", encoding="utf-8") as f:
+            reader = csv.DictReader(f, delimiter=";")
+            _gemeinden_cache = [row for row in reader if row["E"] and row["N"]]
+
+# Funktion zum Abrufen einer zufälligen Gemeinde
+def get_random_gemeinde():
+    if not _gemeinden_cache:
+        lade_gemeinden()
+    return random.choice(_gemeinden_cache)
+
 
 def wgs84_to_lv95(lat, lon):
     transformer = Transformer.from_crs("EPSG:4326", "EPSG:2056", always_xy=True)
