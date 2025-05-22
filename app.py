@@ -4,6 +4,12 @@ from ipyleaflet import Map, Marker, TileLayer
 from utils.helpers import get_random_gemeinde, wgs84_to_lv95, distanz_berechnen_lv95
 from ipyleaflet import GeoJSON
 import json
+import asyncio
+
+async def lade_naechste_gemeinde():
+    await asyncio.sleep(3)  # 3 Sekunden warten
+    random_gemeinde.set(get_random_gemeinde())
+    clicked_coords.set(None)  # Klick zurücksetzen
 
 
 # Reaktive Zustände
@@ -101,7 +107,7 @@ def server(input, output, session):
             max_zoom=13
         )
 
-        m = Map(center=(46.8, 8.3), zoom=7)
+        m = Map(center=(46.8, 8.3), zoom=7, max_zoom=13)
         m.add_layer(esri_shaded)
         marker = Marker(location=(46.8, 8.3), draggable=True)
         m.add_layer(marker)
@@ -112,6 +118,8 @@ def server(input, output, session):
                     latlng = kwargs.get("coordinates")
                     marker.location = latlng
                     clicked_coords.set((round(latlng[0], 5), round(latlng[1], 5)))
+
+                    asyncio.create_task(lade_naechste_gemeinde())
                 
 
         m.on_interaction(on_map_click)
