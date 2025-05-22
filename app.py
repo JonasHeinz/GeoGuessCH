@@ -11,7 +11,7 @@ player_name = reactive.Value("")
 clicked_coords = reactive.Value(None)
 game_started = reactive.Value(False)
 random_gemeinde = reactive.Value(None)
-count = reactive.Value(None)
+count = reactive.Value(0)
 
 
 # UI
