@@ -78,8 +78,8 @@ def server(input, output, session):
             return [
                 ui.div(
                     {"class": "center-box"},
-                    ui.h2("🎯 CH GeoGuess"),
-                    ui.input_text("name_input", "Dein Name", placeholder="Gib deinen Namen ein..."),
+                    ui.h2("Swiss GeoGuess"),
+                    ui.input_text("name_input", "", placeholder="Gib deinen Namen ein..."),
                     ui.input_action_button("start_btn", "Start", class_="btn btn-primary mt-3"),
                 )
             ]
@@ -87,18 +87,18 @@ def server(input, output, session):
             return [
                 ui.div(
                     {"class": "center-box"},
-                    ui.h3("🎯 CH GeoGuess"),
+                    ui.h3("Swiss GeoGuess"),
                     ui.h4(f"Herzlichen Glückwunsch, {player_name.get()}!"),
                     ui.h5("Du hast das Spiel beendet!"),
                     ui.br(),
-                    ui.h4("Deine summierte Distanz beträgt:"),
+                    ui.h4("Gesamtdifferenz:"),
                     ui.output_text("total_distance_text"),
                     ui.input_action_button("end_btn", "Spiel beenden", class_="btn btn-primary mt-3"),
                 )
             ]
         else:
             return [
-                ui.h3(f"Klicke auf: {random_gemeinde.get()['Gemeindename']}"),
+                ui.h3(f"Suche Ort: {random_gemeinde.get()['Gemeindename']}"),
                 output_widget("map_widget"),
                 ui.output_text("coord_text"),
             ]
@@ -133,10 +133,17 @@ def server(input, output, session):
             return
 
         esri_shaded = TileLayer(
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}",
-            attribution="Tiles © Esri — Source: Esri",
-            max_zoom=13,
-        )
+    url="https://tiles.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}{r}.png",
+    attribution=(
+        '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> '
+        '&copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> '
+        '&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> '
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    ),
+    min_zoom=0,
+    max_zoom=18,
+    name="Stamen Terrain"
+)
 
         m = Map(
             center=(46.8, 8.3),
