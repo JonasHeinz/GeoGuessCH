@@ -1,28 +1,18 @@
 from shiny import App, ui, reactive, render
 from shinywidgets import output_widget, register_widget
 from ipyleaflet import Map, Marker, TileLayer
-from pyproj import Transformer
-import math
-from utils.helpers import get_random_gemeinde  # siehe unten
+from utils.helpers import get_random_gemeinde, wgs84_to_lv95, distanz_berechnen_lv95
+from ipyleaflet import GeoJSON
+import json
+
 
 # Reaktive Zustände
 player_name = reactive.Value("")
 clicked_coords = reactive.Value(None)
 game_started = reactive.Value(False)
 random_gemeinde = reactive.Value(None)
+count = reactive.Value(None)
 
-# Koordinatentransformation: WGS84 → LV95
-transformer = Transformer.from_crs("EPSG:4326", "EPSG:2056", always_xy=True)
-
-def wgs84_to_lv95(lat, lon):
-    e, n = transformer.transform(lon, lat)
-    return round(e, 2), round(n, 2)
-
-def distanz_berechnen_lv95(coords1, coords2):
-    e1, n1 = coords1
-    e2, n2 = coords2
-    distanz_m = math.sqrt((e2 - e1)**2 + (n2 - n1)**2)
-    return round(distanz_m / 1000, 2)
 
 # UI
 app_ui = ui.page_fluid(
@@ -118,9 +108,11 @@ def server(input, output, session):
 
         def on_map_click(**kwargs):
             if kwargs.get("type") == "click":
-                latlng = kwargs.get("coordinates")
-                marker.location = latlng
-                clicked_coords.set((round(latlng[0], 5), round(latlng[1], 5)))
+                if count.get() <= 10:
+                    latlng = kwargs.get("coordinates")
+                    marker.location = latlng
+                    clicked_coords.set((round(latlng[0], 5), round(latlng[1], 5)))
+                
 
         m.on_interaction(on_map_click)
         register_widget("map_widget", m)
@@ -138,8 +130,7 @@ def server(input, output, session):
             distanz = distanz_berechnen_lv95(user_coords_lv95, ziel_coords_lv95)
 
             return (
-                f"📌 Zielgemeinde: {gemeinde['Gemeindename']}\n"
-                f"📏 Distanz zur Lösung: {distanz} km"
+                f"Distanz zur Lösung: {distanz} km"
             )
 
         return "Klicke auf die Karte, um deine Schätzung abzugeben."

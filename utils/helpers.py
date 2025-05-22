@@ -1,5 +1,7 @@
 import csv
 import random
+from pyproj import Transformer
+import math
 
 
 def get_random_gemeinde():
@@ -14,3 +16,16 @@ def get_random_gemeinde():
     # Zufällige Gemeinde auswählen
     random_gemeinde = random.choice(gemeinden)
     return random_gemeinde
+
+
+
+def wgs84_to_lv95(lat, lon):
+    transformer = Transformer.from_crs("EPSG:4326", "EPSG:2056", always_xy=True)
+    e, n = transformer.transform(lon, lat)
+    return round(e, 2), round(n, 2)
+
+def distanz_berechnen_lv95(coords1, coords2):
+    e1, n1 = coords1
+    e2, n2 = coords2
+    distanz_m = math.sqrt((e2 - e1)**2 + (n2 - n1)**2)
+    return round(distanz_m / 1000, 2)
