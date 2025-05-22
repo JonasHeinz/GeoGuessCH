@@ -2,6 +2,7 @@ from shiny import App, ui, reactive, render
 from shinywidgets import output_widget, register_widget
 from ipyleaflet import Map, Marker
 from utils.helpers import get_random_gemeinde
+from ipyleaflet import TileLayer
 
 # Reaktive Zustände
 player_name = reactive.Value("")
@@ -68,7 +69,6 @@ def server(input, output, session):
                     ui.h2("🎯 CH GeoGuess"),
                     ui.input_text("name_input", "Dein Name", placeholder="Gib deinen Namen ein..."),
                     ui.input_action_button("start_btn", "Start", class_="btn btn-primary mt-3"),
-                    ui.output_text("greeting_text")
                 )
             ]
         else:
@@ -89,21 +89,20 @@ def server(input, output, session):
             game_started.set(True)
             random_gemeinde.set(get_random_gemeinde())
 
-    @output
-    @render.text
-    def greeting_text():
-        name = player_name.get()
-        if name:
-            return f"👋 Hallo {name}! Viel Spass mit CH GeoGuess!"
-        return ""
-
     # Initialisierung des Spiels nach Start
     @reactive.Effect
     def setup_game():
         if not game_started.get():
             return
 
+        esri_shaded = TileLayer(
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}",
+            attribution="Tiles © Esri — Source: Esri",
+            max_zoom=13
+        )
+
         m = Map(center=(46.8, 8.3), zoom=7)
+        m.add_layer(esri_shaded)
         marker = Marker(location=(46.8, 8.3), draggable=True)
         m.add_layer(marker)
 
