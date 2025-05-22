@@ -1,8 +1,11 @@
 from shiny import App, ui, reactive, render
 from shinywidgets import output_widget, register_widget
 from ipyleaflet import Map, Marker, TileLayer, Icon, Polyline
-from utils.helpers import get_random_gemeinde, distanz_berechnen_lv95, lv95_to_wgs84
+from utils.helpers import get_random_gemeinde, distanz_berechnen_lv95, lv95_to_wgs84, lade_gemeinden
 import asyncio
+
+
+lade_gemeinden()
 
 async def lade_naechste_gemeinde():
     await asyncio.sleep(1)  # 1 Sekunde warten

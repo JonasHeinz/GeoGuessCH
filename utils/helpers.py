@@ -5,20 +5,11 @@ import math
 
 
 def get_random_gemeinde():
-    # CSV-Datei laden (Trennzeichen ; beachten)
-    gemeinden = []
-    with open("data/Gemeinden_CH.csv", encoding="utf-8") as f:
-        reader = csv.DictReader(f, delimiter=";")
-        for row in reader:
-            if row["E"] and row["N"]:
-                gemeinden.append(row)
-
     # Zufällige Gemeinde auswählen
-    random_gemeinde = random.choice(gemeinden)
+    random_gemeinde = random.choice(_gemeinden_cache)
     return random_gemeinde
 
-
-_gemeinden_cache = []
+_gemeinden_cache =[]
 
 def lade_gemeinden():
     global _gemeinden_cache
