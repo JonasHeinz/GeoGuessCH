@@ -4,6 +4,7 @@ from ipyleaflet import Map, Marker, TileLayer
 from utils.helpers import get_random_gemeinde, distanz_berechnen_lv95
 import asyncio
 
+
 async def lade_naechste_gemeinde():
     await asyncio.sleep(1)  # 1 Sekunde warten (kannst du anpassen)
     random_gemeinde.set(get_random_gemeinde())
@@ -50,6 +51,9 @@ app_ui = ui.page_fluid(
                 text-align: center;
                 z-index: 10;
             }
+            .leaflet-container {
+            cursor: crosshair !important;
+            }
             """
         )
     ),
@@ -58,10 +62,13 @@ app_ui = ui.page_fluid(
 )
 
 # Server
+
+
 def server(input, output, session):
 
     # Hintergrundkarte auf Startseite
-    background = Map(center=(46.8, 8.3), zoom=7, scroll_wheel_zoom=False, zoom_control=False)
+    background = Map(center=(46.8, 8.3), zoom=7,
+                     scroll_wheel_zoom=False, zoom_control=False)
     background.interaction = False
     register_widget("background_map", background)
 
@@ -70,12 +77,14 @@ def server(input, output, session):
     def main_ui():
         if game_state.get() == "start":
             return [
-                
+
                 ui.div(
                     {"class": "center-box"},
                     ui.h2("🎯 CH GeoGuess"),
-                    ui.input_text("name_input", "Dein Name", placeholder="Gib deinen Namen ein..."),
-                    ui.input_action_button("start_btn", "Start", class_="btn btn-primary mt-3"),
+                    ui.input_text("name_input", "Dein Name",
+                                  placeholder="Gib deinen Namen ein..."),
+                    ui.input_action_button(
+                        "start_btn", "Start", class_="btn btn-primary mt-3"),
                 )
             ]
         elif game_state.get() == "end":
@@ -122,7 +131,15 @@ def server(input, output, session):
             max_zoom=13,
         )
 
-        m = Map(center=(46.8, 8.3), zoom=7, max_zoom=13)
+        m = Map(
+            center=(46.8, 8.3),
+            zoom=7,
+            min_zoom=7,
+            max_zoom=13,
+            scroll_wheel_zoom=True,
+            max_bounds=[[45.5, 5.5], [47.9, 10.5]]
+        )
+        
         m.add_layer(esri_shaded)
         marker = Marker(location=(46.8, 8.3), draggable=True)
         m.add_layer(marker)
@@ -132,10 +149,12 @@ def server(input, output, session):
                 if count.get() < 2:
                     latlng = kwargs.get("coordinates")
                     marker.location = latlng
-                    clicked_coords.set((round(latlng[0], 5), round(latlng[1], 5)))
+                    clicked_coords.set(
+                        (round(latlng[0], 5), round(latlng[1], 5)))
 
                     # Distanz berechnen
-                    distanz = distanz_berechnen_lv95(clicked_coords.get(), random_gemeinde.get())
+                    distanz = distanz_berechnen_lv95(
+                        clicked_coords.get(), random_gemeinde.get())
                     distance.set(distanz)
                     total_distance.set(total_distance.get() + distanz)
 
@@ -160,6 +179,7 @@ def server(input, output, session):
         if not clicked_coords.get():
             return "Klicke auf die Karte, um deine Schätzung abzugeben."
         return f"Distanz zur Lösung: {distance.get()} km"
+
 
 # App starten
 app = App(app_ui, server)
