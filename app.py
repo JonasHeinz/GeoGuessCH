@@ -3,9 +3,14 @@ from shinywidgets import output_widget, register_widget
 from ipyleaflet import Map, Marker, TileLayer, Icon, Polyline
 from utils.helpers import get_random_gemeinde, distanz_berechnen_lv95, lv95_to_wgs84, lade_gemeinden
 import asyncio
+import json
+from ipyleaflet import GeoJSON
+import geopandas as gpd
+import shapely
 
 
-lade_gemeinden()
+
+
 
 async def lade_naechste_gemeinde():
     await asyncio.sleep(1)  # 1 Sekunde warten
@@ -20,6 +25,7 @@ random_gemeinde = reactive.Value(None)
 count = reactive.Value(0)
 total_distance = reactive.Value(0)
 distance = reactive.Value(0)
+map_widget = reactive.Value(None)
 
 # UI
 app_ui = ui.page_fluid(
@@ -64,6 +70,7 @@ app_ui = ui.page_fluid(
 )
 
 def server(input, output, session):
+    lade_gemeinden()
 
     # Hintergrundkarte
     background = Map(center=(46.8, 8.3), zoom=7,
@@ -115,35 +122,47 @@ def server(input, output, session):
             total_distance.set(0)
             distance.set(0)
             clicked_coords.set(None)
+            map_widget.set(None)  # Karte neu aufbauen beim Spielstart
 
     @reactive.Effect
     @reactive.event(input.end_btn)
     def end_game():
-        player_name.set(0)
         game_state.set("start")
         random_gemeinde.set(None)
         count.set(0)
         total_distance.set(0)
         distance.set(0)
         clicked_coords.set(None)
+        map_widget.set(None)  # Karte entfernen zum Neustart
 
     @reactive.Effect
     def setup_game():
-        if game_state.get() != "game":
+        if game_state.get() != "game" or map_widget.get() is not None:
             return
 
+        with open("data/kantonsgrenzen_2d.geojson", "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        kantonsgrenzen = GeoJSON(
+            data=data,
+            name="Kantonsgrenzen",
+            interactive=False,
+            style={
+                "color": "black",
+                "weight": 0.5,
+                "fillOpacity": 0.0,
+            },
+            highlight_function=lambda x: {
+                "weight": 0.5,
+                "color": "black",
+                "fillOpacity": 0.0
+            }
+        )
+
         esri_shaded = TileLayer(
-    url="https://tiles.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}{r}.png",
-    attribution=(
-        '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> '
-        '&copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> '
-        '&copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> '
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    ),
-    min_zoom=0,
-    max_zoom=18,
-    name="Stamen Terrain"
-)
+            url="https://tiles.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}{r}.png",
+            name="Stamen Terrain"
+        )
 
         m = Map(
             center=(46.8, 8.3),
@@ -154,10 +173,13 @@ def server(input, output, session):
             max_bounds=[[45.5, 5.5], [47.9, 10.5]]
         )
 
-        red_icon = Icon(icon_url="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png", icon_size=[25, 41], icon_anchor=[12, 41])
+        m.add_layer(kantonsgrenzen)
+        m.add_layer(esri_shaded)
+
+        red_icon = Icon(icon_url="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+                        icon_size=[25, 41], icon_anchor=[12, 41])
         ziel_marker = Marker(location=(0, 0), icon=red_icon, draggable=False, opacity=0.9)
 
-        m.add_layer(esri_shaded)
         marker = Marker(location=(46.8, 8.3), draggable=True)
         m.add_layer(marker)
 
@@ -166,11 +188,15 @@ def server(input, output, session):
 
         def on_map_click(**kwargs):
             if kwargs.get("type") == "click":
-                if count.get() < 2:
+                if count.get() < 5:  # Beispiel: max 5 Versuche
                     latlng = kwargs.get("coordinates")
+                    if not latlng or not random_gemeinde.get():
+                        return
+
                     marker.location = latlng
                     clicked_coords.set((round(latlng[0], 5), round(latlng[1], 5)))
 
+                    # Berechnung der Distanz
                     distanz = distanz_berechnen_lv95(clicked_coords.get(), random_gemeinde.get())
                     distance.set(distanz)
                     total_distance.set(total_distance.get() + distanz)
@@ -185,25 +211,27 @@ def server(input, output, session):
 
                     linie.locations = [marker.location, ziel_marker.location]
 
-                    count.set(count.get() + 1)
+                    # Lade nächste Gemeinde nach kurzer Pause
                     asyncio.create_task(lade_naechste_gemeinde())
+                    count.set(count.get() + 1)
                 else:
                     game_state.set("end")
 
         m.on_interaction(on_map_click)
         register_widget("map_widget", m)
+        map_widget.set(m)
 
     @output
     @render.text
     def total_distance_text():
-        return f"{total_distance.get()} km"
+        return f"{total_distance.get():.2f} km"
 
     @output
     @render.text
     def coord_text():
         if not clicked_coords.get():
             return "Klicke auf die Karte, um deine Schätzung abzugeben."
-        return f"Distanz zur Lösung: {distance.get()} km"
+        return f"Distanz zur Lösung: {distance.get():.2f} km"
 
 # App starten
 app = App(app_ui, server)
