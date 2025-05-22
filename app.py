@@ -53,6 +53,7 @@ app_ui = ui.page_fluid(
             """
         )
     ),
+    output_widget("background_map"),
     ui.output_ui("main_ui")
 )
 
@@ -69,7 +70,7 @@ def server(input, output, session):
     def main_ui():
         if game_state.get() == "start":
             return [
-                output_widget("background_map"),
+                
                 ui.div(
                     {"class": "center-box"},
                     ui.h2("🎯 CH GeoGuess"),
