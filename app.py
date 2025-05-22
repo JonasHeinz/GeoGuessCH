@@ -7,7 +7,7 @@ import json
 import asyncio
 
 async def lade_naechste_gemeinde():
-    await asyncio.sleep(3)  # 3 Sekunden warten
+    await asyncio.sleep(1)  # 3 Sekunden warten
     random_gemeinde.set(get_random_gemeinde())
     clicked_coords.set(None)  # Klick zurücksetzen
 
@@ -83,7 +83,18 @@ def server(input, output, session):
                 )
             ]
         elif game_state.get() == "end":
-              return []
+              return [              
+                    output_widget("background_map"),
+                        ui.div(
+                            {"class": "center-box"},
+                            ui.h2("🎯 CH GeoGuess"),
+                            ui.h3(f"Herzlichen Glückwunsch, {player_name.get()}!"),
+                            ui.h4("Du hast das Spiel beendet!"),
+                            ui.br(),
+                            ui.h3("Deine summierte Distanz beträgt:"),
+                            ui.output_text("total_distance")
+    )
+]
         else:
             return [
                     ui.h3(f"Klicke auf: {random_gemeinde.get()['Gemeindename']}"),
@@ -119,12 +130,25 @@ def server(input, output, session):
 
         def on_map_click(**kwargs):
             if kwargs.get("type") == "click":
-                if count.get() <= 10:
+                if count.get() < 2:
                     latlng = kwargs.get("coordinates")
                     marker.location = latlng
                     clicked_coords.set((round(latlng[0], 5), round(latlng[1], 5)))
-                    distance.set(distanz_berechnen_lv95(clicked_coords.get(), random_gemeinde.get()))
-                    asyncio.create_task(lade_naechste_gemeinde())
+
+                    # Distanz berechnen
+                    distanz = distanz_berechnen_lv95(clicked_coords.get(), random_gemeinde.get())
+                    distance.set(distanz)
+                    total_distance.set((total_distance.get() + distanz))
+
+
+                    # Rundenlogik
+                    count.set(count.get() + 1)
+                    # asyncio.create_task(lade_naechste_gemeinde())
+                  
+                else:
+                    game_state.set("end")
+                
+                
                 
 
         m.on_interaction(on_map_click)

@@ -32,3 +32,5 @@ def distanz_berechnen_lv95(coords, gemeinde):
     e2, n2 = ziel_coords_lv95
     distanz_m = math.sqrt((e2 - e1)**2 + (n2 - n1)**2)
     return round(distanz_m / 1000, 2)
+
+
