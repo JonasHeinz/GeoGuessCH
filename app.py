@@ -1,11 +1,13 @@
 from shiny import App, ui, reactive, render
 from shinywidgets import output_widget, register_widget
 from ipyleaflet import Map, Marker
+from utils.helpers import get_random_gemeinde
 
 # Reaktive Zustände
 player_name = reactive.Value("")
 clicked_coords = reactive.Value(None)
 game_started = reactive.Value(False)
+random_gemeinde = reactive.Value(None)
 
 # UI
 app_ui = ui.page_fluid(
@@ -85,6 +87,7 @@ def server(input, output, session):
         if name:
             player_name.set(name)
             game_started.set(True)
+            random_gemeinde.set(get_random_gemeinde())
 
     @output
     @render.text
