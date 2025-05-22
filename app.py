@@ -14,17 +14,14 @@ app_ui = ui.page_fluid(
 
 # Server
 def server(input, output, session):
-    # Karte erst HIER erstellen
     m = Map(center=(46.8, 8.3), zoom=7)
-    marker = Marker(location=(0, 0), visible=False)
+    marker = Marker(location=(46.8, 8.3), draggable=True)
     m.add_layer(marker)
 
-    # Klick-Ereignis
     def on_map_click(**kwargs):
-        latlng = kwargs.get("coordinates")
-        if latlng:
+        if kwargs.get("type") == "click":
+            latlng = kwargs.get("coordinates")
             marker.location = latlng
-            marker.visible = True
             clicked_coords.set((round(latlng[0], 5), round(latlng[1], 5)))
 
     m.on_interaction(on_map_click)
@@ -37,6 +34,5 @@ def server(input, output, session):
         if coords:
             return f"📍 Koordinaten: {coords[0]}, {coords[1]}"
         return "Klicke auf die Karte."
-
 # App
 app = App(app_ui, server)
