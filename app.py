@@ -1,13 +1,11 @@
 from shiny import App, ui, reactive, render
 from shinywidgets import output_widget, register_widget
-from ipyleaflet import Map, Marker, TileLayer
+from ipyleaflet import Map, Marker, TileLayer, Icon, Polyline
 from utils.helpers import get_random_gemeinde, distanz_berechnen_lv95, lv95_to_wgs84
 import asyncio
-from ipyleaflet import Icon
-
 
 async def lade_naechste_gemeinde():
-    await asyncio.sleep(1)  # 1 Sekunde warten (kannst du anpassen)
+    await asyncio.sleep(1)  # 1 Sekunde warten
     random_gemeinde.set(get_random_gemeinde())
     clicked_coords.set(None)  # Klick zurücksetzen
 
@@ -62,12 +60,9 @@ app_ui = ui.page_fluid(
     ui.output_ui("main_ui")
 )
 
-# Server
-
-
 def server(input, output, session):
 
-    # Hintergrundkarte auf Startseite
+    # Hintergrundkarte
     background = Map(center=(46.8, 8.3), zoom=7,
                      scroll_wheel_zoom=False, zoom_control=False)
     background.interaction = False
@@ -78,19 +73,15 @@ def server(input, output, session):
     def main_ui():
         if game_state.get() == "start":
             return [
-
                 ui.div(
                     {"class": "center-box"},
                     ui.h2("🎯 CH GeoGuess"),
-                    ui.input_text("name_input", "Dein Name",
-                                  placeholder="Gib deinen Namen ein..."),
-                    ui.input_action_button(
-                        "start_btn", "Start", class_="btn btn-primary mt-3"),
+                    ui.input_text("name_input", "Dein Name", placeholder="Gib deinen Namen ein..."),
+                    ui.input_action_button("start_btn", "Start", class_="btn btn-primary mt-3"),
                 )
             ]
         elif game_state.get() == "end":
             return [
-                
                 ui.div(
                     {"class": "center-box"},
                     ui.h3("🎯 CH GeoGuess"),
@@ -99,9 +90,7 @@ def server(input, output, session):
                     ui.br(),
                     ui.h4("Deine summierte Distanz beträgt:"),
                     ui.output_text("total_distance_text"),
-                    ui.input_action_button(
-                        "end_btn", "Spiel beenden", class_="btn btn-primary mt-3"),
-                    
+                    ui.input_action_button("end_btn", "Spiel beenden", class_="btn btn-primary mt-3"),
                 )
             ]
         else:
@@ -135,7 +124,6 @@ def server(input, output, session):
         distance.set(0)
         clicked_coords.set(None)
 
-
     @reactive.Effect
     def setup_game():
         if game_state.get() != "game":
@@ -158,38 +146,35 @@ def server(input, output, session):
 
         red_icon = Icon(icon_url="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png", icon_size=[25, 41], icon_anchor=[12, 41])
         ziel_marker = Marker(location=(0, 0), icon=red_icon, draggable=False, opacity=0.9)
-        
+
         m.add_layer(esri_shaded)
         marker = Marker(location=(46.8, 8.3), draggable=True)
         m.add_layer(marker)
+
+        linie = Polyline(locations=[], color="red", weight=4)
+        m.add_layer(linie)
 
         def on_map_click(**kwargs):
             if kwargs.get("type") == "click":
                 if count.get() < 2:
                     latlng = kwargs.get("coordinates")
                     marker.location = latlng
-                    clicked_coords.set(
-                        (round(latlng[0], 5), round(latlng[1], 5)))
+                    clicked_coords.set((round(latlng[0], 5), round(latlng[1], 5)))
 
-                    # Distanz berechnen
-                    distanz = distanz_berechnen_lv95(
-                        clicked_coords.get(), random_gemeinde.get())
+                    distanz = distanz_berechnen_lv95(clicked_coords.get(), random_gemeinde.get())
                     distance.set(distanz)
                     total_distance.set(total_distance.get() + distanz)
 
-                    # Zielkoordinaten (LV95 → WGS84)
                     ziel_e = float(random_gemeinde.get()["E"])
                     ziel_n = float(random_gemeinde.get()["N"])
                     ziel_lat, ziel_lon = lv95_to_wgs84(ziel_e, ziel_n)
 
-                    # Zielmarker aktualisieren
                     ziel_marker.location = (ziel_lat, ziel_lon)
-
-                    # Marker nur einmalig zur Karte hinzufügen
                     if ziel_marker not in m.layers:
                         m.add_layer(ziel_marker)
 
-                    # Rundenlogik
+                    linie.locations = [marker.location, ziel_marker.location]
+
                     count.set(count.get() + 1)
                     asyncio.create_task(lade_naechste_gemeinde())
                 else:
@@ -201,7 +186,6 @@ def server(input, output, session):
     @output
     @render.text
     def total_distance_text():
-        print("Total distance:", total_distance.get())
         return f"{total_distance.get()} km"
 
     @output
@@ -210,7 +194,6 @@ def server(input, output, session):
         if not clicked_coords.get():
             return "Klicke auf die Karte, um deine Schätzung abzugeben."
         return f"Distanz zur Lösung: {distance.get()} km"
-
 
 # App starten
 app = App(app_ui, server)
