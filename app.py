@@ -52,6 +52,18 @@ app_ui = ui.page_fluid(
             .leaflet-interactive {
                 pointer-events: none !important;
             }
+           .btn {
+            background-color: green;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .btn:hover {
+            background-color: black;
+        }
         """)
     ),
     output_widget("background_map"),
