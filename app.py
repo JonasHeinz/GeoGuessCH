@@ -125,12 +125,12 @@ def server(input, output, session):
                             "style": "display: none; margin-top: 20px; text-align: left;"},
                         ui.h4("Spielregeln"),
                         ui.p(
-                            "Ein Spiel dauert 10 Runden, in denen du 10 verschiedene Ortschaften auf der Karte anklicken musst."),
+                            "Ein Spiel dauert 5 Runden, in denen du 5 verschiedene Ortschaften auf der Karte anklicken musst."),
                         ui.p(
-                            "Die maximale Punktzahl pro Runde sind 100 Punkte. Pro Kilometer Abweichung wird 1 Punkt abgezogen."),
-                        ui.p("Beispiel: 2 km daneben = 98 Punkte."),
+                            "Nach dem ersten Klick bzw. absetzten wird anschliessend direkt die neue Ortschaft angezeigt. Es gibt kein Zeitlimit."),
+                        ui.p("Der blaue Marker symbolisiert dein gesetzter Punkt, der rote Marker symbolisiert der tatsächliche Ort. "),
                         ui.p(
-                            "Am Ende werden alle Punkte summiert. Die Zeit spielt keine Rolle.")
+                            "Am Ende werden alle Differenzen in Kilometer aufsummiert.")
                     )
                 )
             ]
@@ -249,7 +249,7 @@ def server(input, output, session):
             name="Kantonsgrenzen",
             interactive=False,
             style={
-                "color": "black",
+                "color": "red",
                 "weight": 0.5,
                 "fillOpacity": 0.0,
                 "pointerEvents": "none", 
@@ -346,7 +346,7 @@ def server(input, output, session):
     @render.text
     def coord_text():
         if not clicked_coords.get():
-            return "Klicke auf die Karte, um deine Schätzung abzugeben."
+            return "Klicke auf die Karte, um deine Schätzung abzugeben. Der Erste Klick zählt!"
         return f"Distanz zur Lösung: {distance.get():.2f} km"
 
 
