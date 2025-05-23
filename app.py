@@ -142,7 +142,7 @@ def server(input, output, session):
                     ui.input_action_button(
                         "startseite_btn", "Startseite", class_="btn btn-secondary mt-3"),
                     ui.tags.button("Spielregeln", {
-                                   "onclick": "toggleRules()", "class": "btn btn-link mt-3"}),
+                                   "onclick": "toggleRules()", "class": "btn mt-3"}),
                     ui.div(
                         {"id": "rules-box",
                             "style": "display: none; margin-top: 20px; text-align: left;"},
