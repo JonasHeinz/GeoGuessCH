@@ -55,7 +55,6 @@ app_ui = ui.page_fluid(
            .btn {
             background-color: green;
             color: white;
-            padding: 10px 15px;
             border: none;
             cursor: pointer;
             border-radius: 5px;
@@ -64,6 +63,8 @@ app_ui = ui.page_fluid(
         .btn:hover {
             background-color: black;
         }
+        .form-group.shiny-input-container{
+            width: 100%;}
         """)
     ),
     output_widget("background_map"),
@@ -83,6 +84,7 @@ map_widget = reactive.Value(None)
 click_enabled = reactive.Value(True)
 warte_auf_letzten_klick = reactive.Value(False)
 
+
 def server(input, output, session):
     background = Map(center=(46.8, 8.3), zoom=7,
                      scroll_wheel_zoom=False, zoom_control=False)
@@ -97,17 +99,27 @@ def server(input, output, session):
                 ui.div(
                     {"class": "center-box"},
                     ui.h1("Willkommen zu Swiss GeoGuess"),
-                    ui.p("Entdecke Schweizer Gemeinden, Berge, Hütten oder Pässe – wie gut kennst du dein Land?"),
-                    ui.input_text("name_input", "", placeholder="Gib deinen Namen ein..."),
-                    ui.input_select("spielmodus", "Was möchtest du spielen?", choices=[
-                        "Ortschaften",
-                        "2000er-Berge",
-                        "3000er-Berge",
-                        "4000er-Berge",
-                        "Berghütten",
-                        "Passstrassen"
-                    ], selected="Ortschaften"),
-                    ui.input_action_button("weiter_btn", "Spiel starten", class_="btn btn-success mt-4")
+                    ui.p(
+                        "Entdecke Schweizer Gemeinden, Berge, Hütten oder Pässe – wie gut kennst du dein Land?"),
+                    ui.div(
+                        ui.input_text("name_input", "",
+                                      placeholder="Gib deinen Namen ein..."),
+                        class_="fullwidth-input"
+                    ),
+
+                    ui.div(
+                        ui.input_select("spielmodus", "Was möchtest du spielen?", choices=[
+                            "Ortschaften",
+                            "Berge ab 2000m",
+                            "Berge ab 3000m",
+                            "Berge ab 4000m",
+                            "Berghütten",
+                            "Passstrassen"
+                        ], selected="Ortschaften"),
+                        class_="fullwidth-input"
+                    ),
+                    ui.input_action_button(
+                        "weiter_btn", "Spiel starten", class_="btn btn-success mt-4")
                 )
             ]
 
@@ -116,21 +128,28 @@ def server(input, output, session):
                 ui.div(
                     {"class": "center-box"},
                     ui.h2("Swiss GeoGuess"),
-                    ui.input_action_button("start_btn", "Neue Runde", class_="btn btn-primary mt-3"),
-                    ui.input_action_button("startseite_btn", "Startseite", class_="btn btn-secondary mt-3"),
-                    ui.tags.button("Spielregeln", {"onclick": "toggleRules()", "class": "btn btn-link mt-3 ms-3"}),
+                    ui.input_action_button(
+                        "start_btn", "Neue Runde", class_="btn btn-primary mt-3"),
+                    ui.input_action_button(
+                        "startseite_btn", "Startseite", class_="btn btn-secondary mt-3"),
+                    ui.tags.button("Spielregeln", {
+                                   "onclick": "toggleRules()", "class": "btn btn-link mt-3"}),
                     ui.div(
-                        {"id": "rules-box", "style": "display: none; margin-top: 20px; text-align: left;"},
+                        {"id": "rules-box",
+                            "style": "display: none; margin-top: 20px; text-align: left;"},
                         ui.h4("Spielregeln"),
-                        ui.p("Ein Spiel dauert 5 Runden. Du musst auf der Karte den gesuchten Ort anklicken."),
-                        ui.p("Der blaue Marker ist dein Tipp, der rote Marker zeigt den gesuchten Ort."),
+                        ui.p(
+                            "Ein Spiel dauert 5 Runden. Du musst auf der Karte den gesuchten Ort anklicken."),
+                        ui.p(
+                            "Der blaue Marker ist dein Tipp, der rote Marker zeigt den gesuchten Ort."),
                         ui.p("Am Ende wird die Gesamtdistanz in km berechnet.")
                     )
                 )
             ]
 
         elif game_state.get() == "end":
-            schreibe_leaderboard(player_name.get(), total_distance.get(), spielmodus.get())
+            schreibe_leaderboard(
+                player_name.get(), total_distance.get(), spielmodus.get())
             top10 = lade_leaderboard(spielmodus.get())
             return [
                 ui.div(
@@ -141,8 +160,10 @@ def server(input, output, session):
                     ui.h4("Gesamtdistanz:"),
                     ui.output_text("total_distance_text"),
                     ui.h4("Top 10 Leaderboard"),
-                    ui.tags.ul([ui.tags.li(f"{i+1}. {e['Name']}: {float(e['Kilometer']):.2f} km") for i, e in enumerate(top10)]),
-                    ui.input_action_button("end_btn", "Zurück", class_="btn btn-primary mt-3")
+                    ui.tags.ul([ui.tags.li(
+                        f"{i+1}. {e['Name']}: {float(e['Kilometer']):.2f} km") for i, e in enumerate(top10)]),
+                    ui.input_action_button(
+                        "end_btn", "Zurück", class_="btn btn-primary mt-3")
                 )
             ]
 
@@ -283,11 +304,13 @@ def server(input, output, session):
             marker.location = latlng
             clicked_coords.set((round(latlng[0], 5), round(latlng[1], 5)))
 
-            distanz = distanz_berechnen_lv95(clicked_coords.get(), random_gemeinde.get())
+            distanz = distanz_berechnen_lv95(
+                clicked_coords.get(), random_gemeinde.get())
             distance.set(distanz)
             total_distance.set(total_distance.get() + distanz)
 
-            ziel_lat, ziel_lon = lv95_to_wgs84(float(random_gemeinde.get()["E"]), float(random_gemeinde.get()["N"]))
+            ziel_lat, ziel_lon = lv95_to_wgs84(
+                float(random_gemeinde.get()["E"]), float(random_gemeinde.get()["N"]))
             ziel_marker.location = (ziel_lat, ziel_lon)
             if ziel_marker not in m.layers:
                 m.add_layer(ziel_marker)
@@ -322,5 +345,6 @@ def server(input, output, session):
     @render.text
     def distanz_anzeige():
         return f"Distanz zur Lösung: {distance.get():.2f} km"
+
 
 app = App(app_ui, server)
