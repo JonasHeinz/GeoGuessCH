@@ -78,7 +78,7 @@ app_ui = ui.page_fluid(
 # Reaktive Zustände
 player_name = reactive.Value("")
 clicked_coords = reactive.Value(None)
-game_state = reactive.Value("start")
+game_state = reactive.Value("home")
 random_gemeinde = reactive.Value(None)
 count = reactive.Value(0)
 total_distance = reactive.Value(0)
@@ -115,10 +115,8 @@ def server(input, output, session):
                 ui.div(
                     {"class": "center-box"},
                     ui.h2("Swiss GeoGuess"),
-                    ui.input_text("name_input", "",
-                                  placeholder="Gib deinen Namen ein..."),
                     ui.input_action_button(
-                        "start_btn", "Start", class_="btn btn-primary mt-3"),
+                        "start_btn", "Neue Runde", class_="btn btn-primary mt-3"),
                     ui.tags.button("Spielregeln", {
                                    "onclick": "toggleRules()", "class": "btn btn-link mt-3 ms-3"}),
                     ui.div(
@@ -181,14 +179,26 @@ def server(input, output, session):
                 ui.output_text("coord_text"),
             ]
 
+        if game_state.get() == "home":
+            return [
+                ui.div(
+                    {"class": "center-box"},
+                    ui.h1("Willkommen zu Swiss GeoGuess"),
+                    ui.p("Entdecke Schweizer Gemeinden – wie gut kennst du dein Land?"),
+                    ui.input_text("name_input", "",
+                                  placeholder="Gib deinen Namen ein..."),
+                    ui.input_action_button(
+                        "weiter_btn", "Spiel starten", class_="btn btn-success mt-4")
+
+                )
+            ]
+
       
-
-
 
     @reactive.Effect
     @reactive.event(input.weiter_btn)
     def weiter_btn():
-            game_state.set("game")  # <== zurück in Spielrunde
+            game_state.set("start")  
             
     @reactive.Effect
     @reactive.event(input.start_btn)
