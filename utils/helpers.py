@@ -10,9 +10,16 @@ _spiel_runden_gemeinden = []
 def lade_gemeinden():
     global _gemeinden_cache
     if not _gemeinden_cache:
-        with open("data/Gemeinden_CH.csv", encoding="utf-8") as f:
+        with open("data/Ortschaften.csv", encoding="utf-8-sig") as f:
             reader = csv.DictReader(f, delimiter=";")
-            _gemeinden_cache = [row for row in reader if row["E"] and row["N"]]
+            unique_coords = set()
+            unique_rows = []
+            for row in reader:
+                coords = (row["E"], row["N"])
+                if coords not in unique_coords:
+                    unique_coords.add(coords)
+                    unique_rows.append(row)
+            _gemeinden_cache = unique_rows
 
 _spiel_runden_gemeinden = []
 _spiel_runde_index = 0

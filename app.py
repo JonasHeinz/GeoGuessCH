@@ -147,6 +147,8 @@ def server(input, output, session):
             ]
         elif game_state.get() == "between":
             return [
+                ui.div({"class": "top-right-box"}),
+                ui.h3(f"Suche Ort: {random_gemeinde.get()['NAME']}"),
                 ui.div(
                     {
                         "style": """
@@ -169,10 +171,11 @@ def server(input, output, session):
                 output_widget("map_widget")  # <== Karte hier einblenden
             ]
               
-        elif game_state.get() == "game":
+        elif game_state.get() == "game": 
+            
             return [
                 ui.div({"class": "top-right-box"}),
-                ui.h3(f"Suche Ort: {random_gemeinde.get()['Gemeindename']}"),
+                ui.h3(f"Suche Ort: {random_gemeinde.get()['NAME']}"),
                 output_widget("map_widget"),
                 ui.output_text("coord_text"),
             ]
