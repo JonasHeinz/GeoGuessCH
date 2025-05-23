@@ -216,7 +216,7 @@ def server(input, output, session):
         name = input.name_input().strip()
         if name:
             player_name.set(name)
-            vorbereite_spiel_runden(10)  # Hier vorbereiten
+            vorbereite_spiel_runden(6)  # Hier vorbereiten
             game_state.set("game")
             random_gemeinde.set(get_next_gemeinde())
             count.set(0)
