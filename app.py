@@ -69,6 +69,7 @@ total_distance = reactive.Value(0)
 distance = reactive.Value(0)
 map_widget = reactive.Value(None)
 click_enabled = reactive.Value(True)
+warte_auf_letzten_klick = reactive.Value(False)
 
 def server(input, output, session):
     background = Map(center=(46.8, 8.3), zoom=7,
@@ -88,8 +89,8 @@ def server(input, output, session):
                     ui.input_text("name_input", "", placeholder="Gib deinen Namen ein..."),
                     ui.input_select("spielmodus", "Was möchtest du spielen?", choices=[
                         "Ortschaften",
-                        "Berge ab 2000m",
-                        "Berge ab 3000m",
+                        "2000er-Berge",
+                        "3000er-Berge",
                         "4000er-Berge",
                         "Berghütten",
                         "Passstrassen"
@@ -137,7 +138,6 @@ def server(input, output, session):
             content = [
                 ui.h3(f"Finde: {random_gemeinde.get()['NAME']}")
             ]
-
             if distance.get() > 0:
                 content.append(
                     ui.div(
@@ -158,7 +158,6 @@ def server(input, output, session):
                         ui.h5(ui.output_text("distanz_anzeige"))
                     )
                 )
-
             content.extend([
                 output_widget("map_widget"),
                 ui.output_text("coord_text")
@@ -194,6 +193,8 @@ def server(input, output, session):
         distance.set(0)
         clicked_coords.set(None)
         map_widget.set(None)
+        click_enabled.set(True)
+        warte_auf_letzten_klick.set(False)
 
     @reactive.Effect
     @reactive.event(input.startseite_btn)
@@ -249,36 +250,45 @@ def server(input, output, session):
         m.add_layer(linie)
 
         def on_map_click(**kwargs):
-            if not click_enabled.get():
+            if kwargs.get("type") != "click":
                 return
-            if kwargs.get("type") == "click":
-                latlng = kwargs.get("coordinates")
-                if not latlng or not random_gemeinde.get():
-                    return
 
-                if marker not in m.layers:
-                    m.add_layer(marker)
+            if warte_auf_letzten_klick.get():
+                warte_auf_letzten_klick.set(False)
+                game_state.set("end")
+                return
 
-                marker.location = latlng
-                clicked_coords.set((round(latlng[0], 5), round(latlng[1], 5)))
+            if not click_enabled.get() or not random_gemeinde.get():
+                return
 
-                distanz = distanz_berechnen_lv95(clicked_coords.get(), random_gemeinde.get())
-                distance.set(distanz)
-                total_distance.set(total_distance.get() + distanz)
+            latlng = kwargs.get("coordinates")
+            if not latlng:
+                return
 
-                ziel_lat, ziel_lon = lv95_to_wgs84(float(random_gemeinde.get()["E"]), float(random_gemeinde.get()["N"]))
-                ziel_marker.location = (ziel_lat, ziel_lon)
-                if ziel_marker not in m.layers:
-                    m.add_layer(ziel_marker)
+            if marker not in m.layers:
+                m.add_layer(marker)
 
-                linie.locations = [marker.location, ziel_marker.location]
+            marker.location = latlng
+            clicked_coords.set((round(latlng[0], 5), round(latlng[1], 5)))
 
-                if count.get() < 4:
-                    count.set(count.get() + 1)
-                    random_gemeinde.set(get_next_gemeinde())
-                    clicked_coords.set(None)
-                else:
-                    game_state.set("end")
+            distanz = distanz_berechnen_lv95(clicked_coords.get(), random_gemeinde.get())
+            distance.set(distanz)
+            total_distance.set(total_distance.get() + distanz)
+
+            ziel_lat, ziel_lon = lv95_to_wgs84(float(random_gemeinde.get()["E"]), float(random_gemeinde.get()["N"]))
+            ziel_marker.location = (ziel_lat, ziel_lon)
+            if ziel_marker not in m.layers:
+                m.add_layer(ziel_marker)
+
+            linie.locations = [marker.location, ziel_marker.location]
+
+            if count.get() < 4:
+                count.set(count.get() + 1)
+                random_gemeinde.set(get_next_gemeinde())
+                clicked_coords.set(None)
+            else:
+                click_enabled.set(False)
+                warte_auf_letzten_klick.set(True)
 
         m.on_interaction(on_map_click)
         register_widget("map_widget", m)
