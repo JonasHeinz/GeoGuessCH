@@ -1,35 +1,25 @@
 from shiny import App, ui, reactive, render
 from shinywidgets import output_widget, register_widget
 from ipyleaflet import Map, Marker, TileLayer, Icon, Polyline
-from utils.helpers import get_random_gemeinde, distanz_berechnen_lv95, lv95_to_wgs84, lade_gemeinden
+from utils.helpers import vorbereite_spiel_runden, get_next_gemeinde, distanz_berechnen_lv95, lv95_to_wgs84, lade_gemeinden
 import asyncio
 import json
 from ipyleaflet import GeoJSON
 import geopandas as gpd
-import shapely
-
-
-
-
-
-async def lade_naechste_gemeinde():
-    await asyncio.sleep(1)  # 1 Sekunde warten
-    random_gemeinde.set(get_random_gemeinde())
-    clicked_coords.set(None)  # Klick zurücksetzen
-
-# Reaktive Zustände
-player_name = reactive.Value("")
-clicked_coords = reactive.Value(None)
-game_state = reactive.Value("start")
-random_gemeinde = reactive.Value(None)
-count = reactive.Value(0)
-total_distance = reactive.Value(0)
-distance = reactive.Value(0)
-map_widget = reactive.Value(None)
 
 # UI
 app_ui = ui.page_fluid(
     ui.tags.head(
+        ui.tags.script("""
+    function toggleRules() {
+        var x = document.getElementById("rules-box");
+        if (x.style.display === "none") {
+            x.style.display = "block";
+        } else {
+            x.style.display = "none";
+}
+}
+"""),
         ui.tags.style(
             """
             body, html {
@@ -62,13 +52,48 @@ app_ui = ui.page_fluid(
             .leaflet-container {
             cursor: crosshair !important;
             }
+            .top-right-box {
+            position: fixed;
+            top: 10px;
+            right: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+            font-size: 18px;
+            z-index: 1000;
+}
             """
         )
     ),
     output_widget("background_map"),
+
     ui.output_ui("main_ui")
 )
 
+# Reaktive Zustände
+player_name = reactive.Value("")
+clicked_coords = reactive.Value(None)
+game_state = reactive.Value("start")
+random_gemeinde = reactive.Value(None)
+count = reactive.Value(0)
+total_distance = reactive.Value(0)
+distance = reactive.Value(0)
+map_widget = reactive.Value(None)
+countdown = reactive.Value(0)
+click_enabled = reactive.Value(True)
+
+async def lade_naechste_gemeinde():
+    click_enabled.set(False)
+    game_state.set("between")  # <== Neu: Zwischenanzeige
+    countdown.set(3)
+    for i in range(3, 0, -1):
+        countdown.set(i)
+    countdown.set(0)
+    random_gemeinde.set(get_next_gemeinde())
+    clicked_coords.set(None)
+    click_enabled.set(True)
+    
 def server(input, output, session):
     lade_gemeinden()
 
@@ -86,8 +111,24 @@ def server(input, output, session):
                 ui.div(
                     {"class": "center-box"},
                     ui.h2("Swiss GeoGuess"),
-                    ui.input_text("name_input", "", placeholder="Gib deinen Namen ein..."),
-                    ui.input_action_button("start_btn", "Start", class_="btn btn-primary mt-3"),
+                    ui.input_text("name_input", "",
+                                  placeholder="Gib deinen Namen ein..."),
+                    ui.input_action_button(
+                        "start_btn", "Start", class_="btn btn-primary mt-3"),
+                    ui.tags.button("Spielregeln", {
+                                   "onclick": "toggleRules()", "class": "btn btn-link mt-3 ms-3"}),
+                    ui.div(
+                        {"id": "rules-box",
+                            "style": "display: none; margin-top: 20px; text-align: left;"},
+                        ui.h4("Spielregeln"),
+                        ui.p(
+                            "Ein Spiel dauert 10 Runden, in denen du 10 verschiedene Ortschaften auf der Karte anklicken musst."),
+                        ui.p(
+                            "Die maximale Punktzahl pro Runde sind 100 Punkte. Pro Kilometer Abweichung wird 1 Punkt abgezogen."),
+                        ui.p("Beispiel: 2 km daneben = 98 Punkte."),
+                        ui.p(
+                            "Am Ende werden alle Punkte summiert. Die Zeit spielt keine Rolle.")
+                    )
                 )
             ]
         elif game_state.get() == "end":
@@ -100,29 +141,65 @@ def server(input, output, session):
                     ui.br(),
                     ui.h4("Gesamtdifferenz:"),
                     ui.output_text("total_distance_text"),
-                    ui.input_action_button("end_btn", "Spiel beenden", class_="btn btn-primary mt-3"),
+                    ui.input_action_button(
+                        "end_btn", "Spiel beenden", class_="btn btn-primary mt-3"),
                 )
             ]
-        else:
+        elif game_state.get() == "between":
             return [
+                ui.div(
+                    {
+                        "style": """
+                            position: fixed;
+                            top: 10px;
+                            left: 50%;
+                            transform: translateX(-50%);
+                            background-color: rgba(255, 255, 255, 0.95);
+                            padding: 20px;
+                            border-radius: 12px;
+                            box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
+                            z-index: 999;
+                            text-align: center;
+                            min-width: 280px;
+                        """
+                    },
+                    ui.h4(f"Distanz zur letzten Gemeinde: {distance.get():.2f} km"),
+                    ui.h5(ui.output_text("countdown_timer"))
+                ),
+                output_widget("map_widget")  # <== Karte hier einblenden
+            ]
+              
+        elif game_state.get() == "game":
+            return [
+                ui.div({"class": "top-right-box"}),
                 ui.h3(f"Suche Ort: {random_gemeinde.get()['Gemeindename']}"),
                 output_widget("map_widget"),
                 ui.output_text("coord_text"),
             ]
 
+      
+
+
+
+    @reactive.Effect
+    @reactive.event(input.weiter_btn)
+    def weiter_btn():
+            game_state.set("game")  # <== zurück in Spielrunde
+            
     @reactive.Effect
     @reactive.event(input.start_btn)
     def start_game():
         name = input.name_input().strip()
         if name:
             player_name.set(name)
+            vorbereite_spiel_runden(10)  # Hier vorbereiten
             game_state.set("game")
-            random_gemeinde.set(get_random_gemeinde())
+            random_gemeinde.set(get_next_gemeinde())
             count.set(0)
             total_distance.set(0)
             distance.set(0)
             clicked_coords.set(None)
-            map_widget.set(None)  # Karte neu aufbauen beim Spielstart
+            map_widget.set(None)
 
     @reactive.Effect
     @reactive.event(input.end_btn)
@@ -178,7 +255,8 @@ def server(input, output, session):
 
         red_icon = Icon(icon_url="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
                         icon_size=[25, 41], icon_anchor=[12, 41])
-        ziel_marker = Marker(location=(0, 0), icon=red_icon, draggable=False, opacity=0.9)
+        ziel_marker = Marker(location=(0, 0), icon=red_icon,
+                             draggable=False, opacity=0.9)
 
         marker = Marker(location=(46.8, 8.3), draggable=True)
         m.add_layer(marker)
@@ -187,6 +265,8 @@ def server(input, output, session):
         m.add_layer(linie)
 
         def on_map_click(**kwargs):
+            if not click_enabled.get():
+                return 
             if kwargs.get("type") == "click":
                 if count.get() < 5:  # Beispiel: max 5 Versuche
                     latlng = kwargs.get("coordinates")
@@ -194,10 +274,12 @@ def server(input, output, session):
                         return
 
                     marker.location = latlng
-                    clicked_coords.set((round(latlng[0], 5), round(latlng[1], 5)))
+                    clicked_coords.set(
+                        (round(latlng[0], 5), round(latlng[1], 5)))
 
                     # Berechnung der Distanz
-                    distanz = distanz_berechnen_lv95(clicked_coords.get(), random_gemeinde.get())
+                    distanz = distanz_berechnen_lv95(
+                        clicked_coords.get(), random_gemeinde.get())
                     distance.set(distanz)
                     total_distance.set(total_distance.get() + distanz)
 
@@ -211,7 +293,6 @@ def server(input, output, session):
 
                     linie.locations = [marker.location, ziel_marker.location]
 
-                    # Lade nächste Gemeinde nach kurzer Pause
                     asyncio.create_task(lade_naechste_gemeinde())
                     count.set(count.get() + 1)
                 else:
@@ -228,10 +309,17 @@ def server(input, output, session):
 
     @output
     @render.text
+    def countdown_timer():
+        if countdown.get() > 0:
+            return f"Nächste Gemeinde in {countdown.get()}s"
+        return ""
+    @output
+    @render.text
     def coord_text():
         if not clicked_coords.get():
             return "Klicke auf die Karte, um deine Schätzung abzugeben."
         return f"Distanz zur Lösung: {distance.get():.2f} km"
+
 
 # App starten
 app = App(app_ui, server)
