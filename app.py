@@ -117,8 +117,8 @@ def server(input, output, session):
             ]
 
         elif game_state.get() == "end":
-            schreibe_leaderboard(player_name.get(), total_distance.get())
-            top10 = lade_leaderboard()
+            schreibe_leaderboard(player_name.get(), total_distance.get(), spielmodus.get())
+            top10 = lade_leaderboard(spielmodus.get())
             return [
                 ui.div(
                     {"class": "center-box"},
