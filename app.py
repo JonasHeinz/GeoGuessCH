@@ -104,6 +104,7 @@ def server(input, output, session):
                     {"class": "center-box"},
                     ui.h2("Swiss GeoGuess"),
                     ui.input_action_button("start_btn", "Neue Runde", class_="btn btn-primary mt-3"),
+                    ui.input_action_button("startseite_btn", "Startseite", class_="btn btn-secondary mt-3"),
                     ui.tags.button("Spielregeln", {"onclick": "toggleRules()", "class": "btn btn-link mt-3 ms-3"}),
                     ui.div(
                         {"id": "rules-box", "style": "display: none; margin-top: 20px; text-align: left;"},
@@ -188,6 +189,18 @@ def server(input, output, session):
         vorbereite_spiel_runden(6, datei=dateiname)
         game_state.set("game")
         random_gemeinde.set(get_next_gemeinde())
+        count.set(0)
+        total_distance.set(0)
+        distance.set(0)
+        clicked_coords.set(None)
+        map_widget.set(None)
+
+    @reactive.Effect
+    @reactive.event(input.startseite_btn)
+    def gehe_zur_startseite():
+        game_state.set("home")
+        player_name.set("")
+        random_gemeinde.set(None)
         count.set(0)
         total_distance.set(0)
         distance.set(0)
