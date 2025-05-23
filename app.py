@@ -63,8 +63,17 @@ app_ui = ui.page_fluid(
         .btn:hover {
             background-color: black;
         }
+        .leaderboard {
+        list-style-type: none;  
+        padding: 0;             
+        text-align: left;       
+        margin-left: 0;         
+    }
         .form-group.shiny-input-container{
             width: 100%;}
+            .li {
+                  text-align: left;
+                }
         """)
     ),
     output_widget("background_map"),
@@ -160,8 +169,11 @@ def server(input, output, session):
                     ui.h4("Gesamtdistanz:"),
                     ui.output_text("total_distance_text"),
                     ui.h4("Top 10 Leaderboard"),
-                    ui.tags.ul([ui.tags.li(
-                        f"{i+1}. {e['Name']}: {float(e['Kilometer']):.2f} km") for i, e in enumerate(top10)]),
+                    ui.tags.ul(
+                        [ui.tags.li(f"{i+1}. {e['Name']}: {float(e['Kilometer']):.2f} km")
+                         for i, e in enumerate(top10)],
+                        class_="leaderboard"
+                    ),
                     ui.input_action_button(
                         "end_btn", "Zurück", class_="btn btn-primary mt-3")
                 )
