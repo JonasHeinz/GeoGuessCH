@@ -49,9 +49,13 @@ app_ui = ui.page_fluid(
                 text-align: center;
                 z-index: 10;
             }
-            .leaflet-container {
-            cursor: crosshair !important;
+               .leaflet-container {
+        cursor: crosshair !important;
             }
+            .leaflet-interactive {
+                pointer-events: none !important;
+            }
+
             .top-right-box {
             position: fixed;
             top: 10px;
@@ -148,12 +152,12 @@ def server(input, output, session):
         elif game_state.get() == "between":
             return [
                 ui.div({"class": "top-right-box"}),
-                ui.h3(f"Suche Ort: {random_gemeinde.get()['NAME']}"),
+                ui.h3(f"Suche Ort: {random_gemeinde.get()['Gemeindename']}"),
                 ui.div(
                     {
                         "style": """
                             position: fixed;
-                            top: 10px;
+                             top: 10px;
                             left: 50%;
                             transform: translateX(-50%);
                             background-color: rgba(255, 255, 255, 0.95);
@@ -171,11 +175,10 @@ def server(input, output, session):
                 output_widget("map_widget")  # <== Karte hier einblenden
             ]
               
-        elif game_state.get() == "game": 
-            
+        elif game_state.get() == "game":
             return [
                 ui.div({"class": "top-right-box"}),
-                ui.h3(f"Suche Ort: {random_gemeinde.get()['NAME']}"),
+                ui.h3(f"Suche Ort: {random_gemeinde.get()['Gemeindename']}"),
                 output_widget("map_widget"),
                 ui.output_text("coord_text"),
             ]
@@ -231,6 +234,7 @@ def server(input, output, session):
                 "color": "black",
                 "weight": 0.5,
                 "fillOpacity": 0.0,
+                "pointerEvents": "none", 
             },
             highlight_function=lambda x: {
                 "weight": 0.5,
