@@ -6,6 +6,7 @@ import asyncio
 import json
 from ipyleaflet import GeoJSON
 import geopandas as gpd
+from leaderboard import lade_leaderboard, schreibe_leaderboard
 
 # UI
 app_ui = ui.page_fluid(
@@ -134,19 +135,28 @@ def server(input, output, session):
                 )
             ]
         elif game_state.get() == "end":
-            return [
-                ui.div(
-                    {"class": "center-box"},
-                    ui.h3("Swiss GeoGuess"),
-                    ui.h4(f"Herzlichen Glückwunsch, {player_name.get()}!"),
-                    ui.h5("Du hast das Spiel beendet!"),
-                    ui.br(),
-                    ui.h4("Gesamtdifferenz:"),
-                    ui.output_text("total_distance_text"),
-                    ui.input_action_button(
-                        "end_btn", "Spiel beenden", class_="btn btn-primary mt-3"),
-                )
-            ]
+                    # Schreibe aktuellen Score ins Leaderboard
+                    schreibe_leaderboard(player_name.get(), total_distance.get())
+
+                    # Lade das Leaderboard für Anzeige
+                    top10 = lade_leaderboard()
+
+                    return [
+                        ui.div(
+                            {"class": "center-box"},
+                            ui.h3("Swiss GeoGuess"),
+                            ui.h4(f"Herzlichen Glückwunsch, {player_name.get()}!"),
+                            ui.h5("Du hast das Spiel beendet!"),
+                            ui.br(),
+                            ui.h4("Gesamtdifferenz:"),
+                            ui.output_text("total_distance_text"),
+                            ui.h4("Top 10 Leaderboard"),
+                            ui.tags.ul(
+                                [ui.tags.li(f"{i+1}. {e['Name']}: {float(e['Kilometer']):.2f} Kilometer") for i, e in enumerate(top10)]
+                            ),
+                            ui.input_action_button("end_btn", "Spiel beenden", class_="btn btn-primary mt-3"),
+                        )
+                    ]
         elif game_state.get() == "between":
             return [
                 ui.h3(f"Suche Ort: {random_gemeinde.get()['NAME']}"),
