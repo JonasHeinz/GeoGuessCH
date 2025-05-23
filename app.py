@@ -225,7 +225,7 @@ def server(input, output, session):
             "Ortschaften": "Ortschaften.csv",
             "Berge ab 2000m": "Berge2000.csv",
             "Berge ab 3000m": "Berge3000.csv",
-            "4000er-Berge": "Berge4000.csv",
+            "Berge ab 4000m": "Berge4000.csv",
             "Berghütten": "Berghuetten.csv",
             "Passstrassen": "Passstrassen.csv"
         }
