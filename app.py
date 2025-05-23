@@ -151,7 +151,6 @@ def server(input, output, session):
             ]
         elif game_state.get() == "between":
             return [
-                ui.div({"class": "top-right-box"}),
                 ui.h3(f"Suche Ort: {random_gemeinde.get()['NAME']}"),
                 ui.div(
                     {
@@ -177,7 +176,6 @@ def server(input, output, session):
               
         elif game_state.get() == "game":
             return [
-                ui.div({"class": "top-right-box"}),
                 ui.h3(f"Suche Ort: {random_gemeinde.get()['NAME']}"),
                 output_widget("map_widget"),
                 ui.output_text("coord_text"),
@@ -254,7 +252,8 @@ def server(input, output, session):
             min_zoom=7,
             max_zoom=13,
             scroll_wheel_zoom=True,
-            max_bounds=[[45.5, 5.5], [47.9, 10.5]]
+            max_bounds=[[45.5, 5.5], [47.9, 10.5]],
+            layout={"height": "80vh"} 
         )
 
         m.add_layer(kantonsgrenzen)
@@ -266,19 +265,22 @@ def server(input, output, session):
                              draggable=False, opacity=0.9)
 
         marker = Marker(location=(46.8, 8.3), draggable=True)
-        m.add_layer(marker)
+        
 
         linie = Polyline(locations=[], color="red", weight=4)
         m.add_layer(linie)
 
         def on_map_click(**kwargs):
             if not click_enabled.get():
-                return 
+                return
             if kwargs.get("type") == "click":
-                if count.get() < 5:  # Beispiel: max 5 Versuche
+                if count.get() < 5:
                     latlng = kwargs.get("coordinates")
                     if not latlng or not random_gemeinde.get():
                         return
+
+                    if marker not in m.layers:
+                        m.add_layer(marker)
 
                     marker.location = latlng
                     clicked_coords.set(
